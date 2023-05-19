@@ -1,0 +1,42 @@
+name: Build Firefox for Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout gecko-dev repository
+      uses: actions/checkout@v2
+      with:
+        repository: mozilla/gecko-dev
+        ref: central
+
+    - name: Install build dependencies
+      run: |
+        choco install python2 visualstudio2019-workload-vctools llvm
+        pip install --upgrade pip
+        pip install --upgrade setuptools
+        pip install mozbuild
+
+    - name: Configure and build Firefox
+      run: |
+        set MOZCONFIG=mozconfig-windows
+        set PATH=%PATH%;C:\Program Files (x86)\LLVM\bin
+        set PATH=%PATH%;C:\Python27
+        set PATH=%PATH%;C:\Python27\Scripts
+        echo . > mozconfig-windows
+        echo mk_add_options AUTOCLOBBER=1 >> mozconfig-windows
+        echo ac_add_options --disable-debug-symbols >> mozconfig-windows
+        echo ac_add_options --enable-release >> mozconfig-windows
+        echo ac_add_options --disable-debug >> mozconfig-windows
+        echo ac_add_options --disable-tests >> mozconfig-windows
+        echo ac_add_options --enable-artifact-builds >> mozconfig-windows
+        mach bootstrap --no-interactive --application-choice=browser
+        mach build
